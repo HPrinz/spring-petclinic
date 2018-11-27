@@ -11,7 +11,7 @@ workflows:
       - build
       - push-image:
           requires:
-            - test-locally
+            - build
 
 version: 2
 jobs:
