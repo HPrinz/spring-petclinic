@@ -2,6 +2,17 @@
 #
 # Check https://circleci.com/docs/2.0/language-java/ for more details
 #
+
+# see https://circleci.com/docs/2.0/workflows/
+workflows:
+  version: 2
+  test-and-build-image:
+    jobs:
+      - build
+      - push-image:
+          requires:
+            - test-locally
+
 version: 2
 jobs:
   build:
@@ -14,7 +25,7 @@ jobs:
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
 
-    working_directory: ~/
+    working_directory: ~/tmp
 
     environment:
       # Customize the JVM maximum heap limit
@@ -40,3 +51,13 @@ jobs:
         
       # run tests!
       - run: gradle test
+
+  push-image:
+    machine: true
+    steps:
+      - checkout
+      - run: echo ${GOOGLE_AUTH} > ${HOME}/gcp-key.json
+      - run: docker build --rm=false -t eu.gcr.io/${GCP_PROJECT}/${IMAGE_NAME}:$CIRCLE_SHA1 .
+      - run: gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run: gcloud --quiet config set project ${GCP_PROJECT}
+      - run: gcloud docker -- push eu.gcr.io/${GCP_PROJECT}/${IMAGE_NAME}:$CIRCLE_SHA1
